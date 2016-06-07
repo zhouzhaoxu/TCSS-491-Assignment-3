@@ -65,40 +65,38 @@ Base.prototype.update = function () {
     Entity.prototype.update.call(this);
     //console.log(this.game.clockTick);
 
-    if(!freeze) {
-	    this.animation = new Animation(this.spritesheet, 169 - this.health * 15, 1, 98, 15, 1, 0.30, 1, true);
-	    this.clockTick++;
-	    //console.log(this.clockTick);
-	    //this.x += this.velocity.x * this.game.clockTick;
-	    //this.y += this.velocity.y * this.game.clockTick;
-	    //making circle
-	    if(this.clockTick > Math.random() * 2500 + 100) {
-	    	var size = Math.floor(Math.random() * 3 + 1) * 10;
-	    	//console.log(size);
-	    	var circle = new Circle(this.game, this.position, size, 0, 0, Math.random() * 200 + 30, 
-	    			Math.random() * 200 + 30, false);
-	    	//console.log("here");
-	    	//circle.setColor(this.position);
-	    	this.game.addEntity(circle);
-	        this.clockTick = 0;
-	    	//this.lastClockTick = this.game.clockTick;
-	    }
-	    //checking if the base still alive if not remove from entities.
-	    for (var i = 0; i < this.game.entities.length; i++) {
-	        var ent = this.game.entities[i];
-	        if(ent == this && !this.isAlive) {
-	        	this.game.entities[i].removeFromWorld = true;
-	        }
-	        if (ent !== this && this.collide(ent)) {
-	        	//console.log(this.color, this.health);
-	            if(this.color !== ent.color) {
-	                this.touchCircle(ent);
-	            }
-			    if (this.health <= 4) {
-			    	this.isAlive = false;
-			    }
-	        }
-	    }
+    this.animation = new Animation(this.spritesheet, 169 - this.health * 15, 1, 98, 15, 1, 0.30, 1, true);
+    this.clockTick++;
+    //console.log(this.clockTick);
+    //this.x += this.velocity.x * this.game.clockTick;
+    //this.y += this.velocity.y * this.game.clockTick;
+    //making circle
+    if(this.clockTick > Math.random() * 2500 + 100) {
+    	var size = Math.floor(Math.random() * 3 + 1) * 10;
+    	//console.log(size);
+    	var circle = new Circle(this.game, this.position, size, 0, 0, Math.random() * 200 + 30, 
+    			Math.random() * 200 + 30, false);
+    	//console.log("here");
+    	//circle.setColor(this.position);
+    	this.game.addEntity(circle);
+        this.clockTick = 0;
+    	//this.lastClockTick = this.game.clockTick;
+    }
+    //checking if the base still alive if not remove from entities.
+    for (var i = 0; i < this.game.entities.length; i++) {
+        var ent = this.game.entities[i];
+        if(ent == this && !this.isAlive) {
+        	this.game.entities[i].removeFromWorld = true;
+        }
+        if (ent !== this && this.collide(ent)) {
+        	//console.log(this.color, this.health);
+            if(this.color !== ent.color) {
+                this.touchCircle(ent);
+            }
+		    if (this.health <= 4) {
+		    	this.isAlive = false;
+		    }
+        }
     }
 };
 
