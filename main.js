@@ -4,7 +4,6 @@ var AM = new AssetManager();
 var friction = 1;
 var acceleration = 1000000;
 var game_Over = false;
-var freeze = false;
 //var maxSpeed = 300;
 
 //function loadAssets() {
@@ -39,15 +38,6 @@ window.onload = function () {
         }
         gameEngine.init(ctx);
         gameEngine.start();
-
-        //getting the pause play button
-        var stop = document.getElementById("PausePlay");
-        //listener for the pause play button
-        stop.addEventListener("click", function(e) {
-            e.preventDefault();
-            console.log(freeze);
-            freeze = !freeze;
-        }, false);
 
         //what happen when loading
         socket.on("load", function(data) {
