@@ -1,118 +1,112 @@
-// GameBoard code below
+var AM = new AssetManager();
+//var gameEngine = new GameEngine();
+//the "main" code begins here
+var friction = 1;
+var acceleration = 1000000;
+var game_Over = false;
+//var maxSpeed = 300;
 
-function distance(a, b) {
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
-    return Math.sqrt(dx * dx + dy * dy);
-}
+//function loadAssets() {
+	AM.queueDownload("./img/health bar_BW.png");
+	AM.queueDownload("./img/Game_Over.png");
+	//AM.downloadAll(startGame);
+//}
 
-function Base(game, position, spritesheet, health) {
-    this.side = 50;
-    this.health = health;
-    this.isAlive = true;
-    //this.visualside = 500;
-    this.clockTick = 0;
-    this.position = position;
-    this.spritesheet = spritesheet;
-    this.colors = ["Red", "Blue", "Green", "White"];
-    //this.gameOver = new Animation(spritesheet2, 333, 289, 620, 120, 1, 0.30, 1, true);
-    //this.animation = new Animation(spritesheet, 169 - this.health * 15, 1, 98, 15, 1, 0.30, 1, true);
-    switch(position) {
-    	case 0: Entity.call(this, game, 0, 400); this.x = 0; this.y = 350; break;
-    	case 1: Entity.call(this, game, 800, 400); this.x = 750; this.y = 350; break;
-    	case 2: Entity.call(this, game, 400, 800); this.x = 375; this.y = 750; break;
-    	case 3: Entity.call(this, game, 400, 0); this.x = 375; this.y = 0; break;
-    	default: console.log("something else");
-    }
-};
+//WEB ASPECT
+var socket = io.connect("http://76.28.150.193:8888");
 
-Base.prototype = new Entity();
-Base.prototype.constructor = Base;
+socket.on("load", function (data) {
+    console.log(data);
+});
 
-Base.prototype.setColor = function (num) {
-	this.color = num;
-};
+window.onload = function () {
+    var gameEngine = new GameEngine();
+    AM.downloadAll(function () {
+    	console.log("starting up da sheild");
+        var canvas = document.getElementById('gameWorld');
+        var ctx = canvas.getContext('2d');
+     
+        //var base = new Base(gameEngine, 0);
+        //base.setIt();
+        //gameEngine.addEntity(circle);
+        end = new GameOver(gameEngine, AM.getAsset("./img/Game_Over.png"));
+        gameEngine.addEntity(end);
+        for (var i = 0; i < 2; i++) {
+        	base = new Base(gameEngine, i, AM.getAsset("./img/health bar_BW.png"), 11);
+        	base.setColor(i);
+            gameEngine.addEntity(base);
+        }
+        gameEngine.init(ctx);
+        gameEngine.start();
 
-Base.prototype.collide = function (other) {
-    return distance(this, other) < this.side + other.radius;
-};
+        //what happen when loading
+        socket.on("load", function(data) {
+            var entities = data.gameState;
+            //reset the entities to none so you can add the loaded data in
+            gameEngine.entities = [];
+            end = new GameOver(gameEngine, AM.getAsset("./img/Game_Over.png"));
+            gameEngine.addEntity(end);
 
-Base.prototype.collideLeft = function () {
-    return (this.x - this.side) < 0;
-};
+            //add the data in
+            for (var i = 0; i < entities.length; i++) {
+                if (entities[i].name === "circle") {
+                    console.log(entities[i].name);
+                    var circle = new Circle(gameEngine, entities[i].team, entities[i].radius, 
+                    		entities[i].x, entities[i].y, 
+                    		entities[i].xVelocity, entities[i].yVelocity, true);
+                    gameEngine.addEntity(circle);
+                } else if (entities[i].name === "base") {
+                	var base = new Base(gameEngine, entities[i].position, 
+                			AM.getAsset("./img/health bar_BW.png"), entities[i].health);
+                	base.setColor(entities[i].position);
+                    gameEngine.addEntity(base);
+                }
+            }
 
-Base.prototype.collideRight = function () {
-    return (this.x + this.side) > 800;
-};
+        });
 
-Base.prototype.collideTop = function () {
-    return (this.y - this.side) < 0;
-};
+        //what happen when saving
+        document.getElementById("save").onclick = function(e) {
+            e.preventDefault();
+            console.log("Trying to save");
+            console.log(gameEngine.entities);
+            var entities = gameEngine.entities;
+            //the data that is to be sended
+            var saveState = {studentname: "Alan Reilly", statename: "entityData", gameState: []};
+            for (var i = 0; i < gameEngine.entities.length; i++) {
+                if (gameEngine.entities[i] instanceof Circle) {
+                    var circle = gameEngine.entities[i];
+                    saveState.gameState.push({name: "circle", team: circle.team, radius: circle.radius, 
+                    	x: circle.x, y: circle.y, 
+                    	xVelocity: circle.velocity.x, yVelocity: circle.velocity.y});
+                    console.log("Data saved for Circle");
+                } else if(gameEngine.entities[i] instanceof Base) {
+                	var base = gameEngine.entities[i];
+                	saveState.gameState.push({name: "base", position: base.position, health: base.health});
+                	console.log("Data saved for Base");
+                }
+            }
 
-Base.prototype.collideBottom = function () {
-    return (this.y + this.side) > 800;
-};
+            //send the data to the server to be saved
+            socket.emit("save", saveState);  
+        }
 
-Base.prototype.touchCircle = function (circle) {
-    if (this.health < 10) {
-    	circle.removeFromWorld = true;
-    	circle.isAlive = false;
-        this.health -= circle.radius / 10;
-    }
-}
-Base.prototype.update = function () {
-	
-    Entity.prototype.update.call(this);
-    //console.log(this.game.clockTick);
+        document.getElementById("load").onclick = function(e) {
+            e.preventDefault();
+            console.log("Trying to load");
+            socket.emit("load", {studentname: "Alan Reilly", statename: "entityData"});
+        }
 
-    if(!freeze) {
-	    this.animation = new Animation(this.spritesheet, 169 - this.health * 15, 1, 98, 15, 1, 0.30, 1, true);
-	    this.clockTick++;
-	    //console.log(this.clockTick);
-	    //this.x += this.velocity.x * this.game.clockTick;
-	    //this.y += this.velocity.y * this.game.clockTick;
-	    //making circle
-	    if(this.clockTick > Math.random() * 2500 + 100) {
-	    	var size = Math.floor(Math.random() * 3 + 1) * 10;
-	    	//console.log(size);
-	    	var circle = new Circle(this.game, this.position, size, 0, 0, Math.random() * 200 + 30, 
-	    			Math.random() * 200 + 30, false);
-	    	//console.log("here");
-	    	//circle.setColor(this.position);
-	    	this.game.addEntity(circle);
-	        this.clockTick = 0;
-	    	//this.lastClockTick = this.game.clockTick;
-	    }
-	    //checking if the base still alive if not remove from entities.
-	    for (var i = 0; i < this.game.entities.length; i++) {
-	        var ent = this.game.entities[i];
-	        if(ent == this && !this.isAlive) {
-	        	this.game.entities[i].removeFromWorld = true;
-	        }
-	        if (ent !== this && this.collide(ent)) {
-	        	//console.log(this.color, this.health);
-	            if(this.color !== ent.color) {
-	                this.touchCircle(ent);
-	            }
-			    if (this.health <= 4) {
-			    	this.isAlive = false;
-			    }
-	        }
-	    }
-    }
-};
 
-Base.prototype.draw = function (ctx) {
-    ctx.beginPath();
-    ctx.fillStyle = this.colors[this.color];
-    //ctx.arc(this.x, this.y, this.side, 0, Math.PI * 2, false);
-    ctx.rect(this.x, this.y, this.side, this.side);
-    ctx.fill();
-    ctx.closePath();
-    if(this.position) {
-        this.animation.drawFrame(this.game.clockTick, ctx, this.x - 40, this.y - 20);
-    } else {
-        this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y - 20);
-    }
-    Entity.prototype.draw.call(this)
+        socket.on("connect", function () {
+            console.log("Socket connected.")
+        });
+        socket.on("disconnect", function () {
+            console.log("Socket disconnected.")
+        });
+        socket.on("reconnect", function () {
+            console.log("Socket reconnected.")
+        });
+    });
+
 };
